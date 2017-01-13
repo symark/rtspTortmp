@@ -7,9 +7,14 @@
     <groupId>com.github.xzlink</groupId>
     <artifactId>rtspTortmp</artifactId>
     <packaging>jar</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.2</version>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -22,6 +27,18 @@
         </plugins>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>xzlink-releases</id>
+            <name>Nexus Release Repository</name>
+            <url>http://maven.xzlink.com/nexus/content/repositories/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>xzlink-snapshots</id>
+            <name>Nexus Snapshot Repository</name>
+            <url>http://maven.xzlink.com/nexus/content/repositories/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 
 

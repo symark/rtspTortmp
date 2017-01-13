@@ -426,13 +426,12 @@ public class RTSPClient extends Thread implements IEvent {
     static byte[] sps;
     static byte[] sei;
     static boolean pushDataFrame = true;
+
     public static void main(String[] argv) {
 
-        byte[] nalu = new byte[0];
-        boolean isStart = true;
 
         DefaultRtmpClient r = new DefaultRtmpClient("4837.livepush.myqcloud.com",1935,"live");
-        r.playPath = "4837_df5b7746940511e69776e435c87f075e?bizid=4837";
+        r.playPath = "4837_111?bizid=4837";
         try {
             r.connect();
             r.publish();
@@ -455,12 +454,9 @@ public class RTSPClient extends Thread implements IEvent {
 
                 }
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
     }
 
     public static void printHexString( byte[] b) {
