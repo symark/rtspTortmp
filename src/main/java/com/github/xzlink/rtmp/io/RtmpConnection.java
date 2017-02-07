@@ -45,11 +45,13 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
     private int pauseTimeStamp = -1;
     /** Used to track stream position for pause/resume */
     private int streamPosition = 0;
+    public String rtmpPath;
 
-    public RtmpConnection(String host, int port, String appName) {
+    public RtmpConnection(String host, int port, String appName,String rtmpPath) {
         this.host = host;
         this.port = port;
         this.appName = appName;
+        this.rtmpPath = rtmpPath;
         rtmpSessionInfo = new RtmpSessionInfo();
         rxPacketQueue = new ConcurrentLinkedQueue<RtmpPacket>();
     }
@@ -133,11 +135,11 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
         // Send createStream() command
         Command releaseStream = new Command("releaseStream", ++transactionIdCounter, chunkStreamInfo);
         releaseStream.addData(new AmfNull());
-        releaseStream.addData("4837_df5b7746940511e69776e435c87f075e?bizid=4837");
+        releaseStream.addData(rtmpPath);
 
         Command fcPublish = new Command("FCPublish", ++transactionIdCounter, chunkStreamInfo);
         fcPublish.addData(new AmfNull());
-        fcPublish.addData("4837_df5b7746940511e69776e435c87f075e?bizid=4837");
+        fcPublish.addData(rtmpPath);
 
         // Send createStream() command
         Command createStream = new Command("createStream", ++transactionIdCounter, chunkStreamInfo);
@@ -169,7 +171,7 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
 //            publish.getHeader().setMessageType(RtmpHeader.MessageType.COMMAND_AMF0);
 
             publish.addData(new AmfNull());
-            publish.addData("4837_df5b7746940511e69776e435c87f075e?bizid=4837"); // what to play
+            publish.addData(rtmpPath); // what to play
             publish.addData("live"); // play start position
 
             //L.i("+++++++  WRITING PLAY packet ++++++++");

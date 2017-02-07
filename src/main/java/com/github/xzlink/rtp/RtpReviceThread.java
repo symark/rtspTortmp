@@ -22,12 +22,14 @@ public class RtpReviceThread extends Thread{
     boolean pushDataFrame = true;
     int deviceNo;
     String remoteIp;
+    String localeIp;
 
-    public RtpReviceThread(String remoteIp,int port,LoopPush loopPush,int deviceNo){
+    public RtpReviceThread(String remoteIp,int port,LoopPush loopPush,int deviceNo,String localeIp){
         this.port = port;
         this.loopPush = loopPush;
         this.deviceNo = deviceNo;
         this.remoteIp = remoteIp;
+        this.localeIp = localeIp;
     }
 
     @Override
@@ -38,7 +40,7 @@ public class RtpReviceThread extends Thread{
         try{
             RTSPClient client = new RTSPClient(
                     new InetSocketAddress(remoteIp, 554),
-                    new InetSocketAddress("192.168.3.100", 0),
+                    new InetSocketAddress(localeIp, 0),
                     "rtsp://admin:Yundong2015@"+remoteIp+":554/h264/ch1/main/av_stream/",port);
             client.start();//
         }catch(Exception e){

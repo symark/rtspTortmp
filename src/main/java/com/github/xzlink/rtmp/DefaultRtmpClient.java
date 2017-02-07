@@ -20,7 +20,7 @@ public class DefaultRtmpClient implements RtmpClient {
     private static final Pattern rtmpUrlPattern = Pattern.compile("^rtmp://([^/:]+)(:(\\d+))*/([^?]+)(\\?(.*))*$");
     
     private RtmpClient rtmpConnection;
-    public String playPath;
+
 
     /** 
      * Constructor for specified host, port and application
@@ -29,8 +29,8 @@ public class DefaultRtmpClient implements RtmpClient {
      * @param port the port to connect to
      * @param application the application to connect to
      */
-    public DefaultRtmpClient(String host, int port, String application) {
-        rtmpConnection = new RtmpConnection(host, port, application);
+    public DefaultRtmpClient(String host, int port, String application,String playPath) {
+        rtmpConnection = new RtmpConnection(host, port, application, playPath);
     }
 
     /** 
@@ -39,8 +39,8 @@ public class DefaultRtmpClient implements RtmpClient {
      * @param host the hostname or IP address to connect to
      * @param application the application to connect to
      */
-    public DefaultRtmpClient(String host, String application) {
-        this(host, 1935, application);
+    public DefaultRtmpClient(String host, String application,String playPath) {
+        this(host, 1935, application,playPath);
     }
 
     /** 
@@ -53,8 +53,8 @@ public class DefaultRtmpClient implements RtmpClient {
         if (matcher.matches()) {
             String portStr = matcher.group(3);
             int port = portStr != null ? Integer.parseInt(portStr) : 1935;            
-            playPath = matcher.group(6);            
-            rtmpConnection = new RtmpConnection(matcher.group(1), port, matcher.group(4));
+            String playPath = matcher.group(6);
+            rtmpConnection = new RtmpConnection(matcher.group(1), port, matcher.group(4),playPath);
         } else {
             throw new RuntimeException("Invalid RTMP URL. Must be in format: rtmp://host[:port]/application[?streamName]");
         }
@@ -78,10 +78,10 @@ public class DefaultRtmpClient implements RtmpClient {
     }
 
     public void play(RtmpStreamWriter rtmpStreamWriter) throws IllegalStateException, IOException {
-        if (playPath == null) {
-            throw new IllegalStateException("No stream name specified");
-        }
-        rtmpConnection.play(playPath, rtmpStreamWriter);
+//        if (playPath == null) {
+//            throw new IllegalStateException("No stream name specified");
+//        }
+//        rtmpConnection.play(playPath, rtmpStreamWriter);
     }
 
     public void publish() throws IllegalStateException, IOException{
@@ -89,10 +89,10 @@ public class DefaultRtmpClient implements RtmpClient {
     }
     
     public void playAsync(RtmpStreamWriter rtmpStreamWriter) throws IllegalStateException, IOException {
-        if (playPath == null) {
-            throw new IllegalStateException("No stream name specified");
-        }
-        rtmpConnection.playAsync(playPath, rtmpStreamWriter);
+//        if (playPath == null) {
+//            throw new IllegalStateException("No stream name specified");
+//        }
+//        rtmpConnection.playAsync(playPath, rtmpStreamWriter);
     }
 
     @Override

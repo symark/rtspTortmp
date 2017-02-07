@@ -4,6 +4,7 @@ package com.github.xzlink.rtsp;
  * Created by symark on 16/9/29.
  */
 
+import com.github.xzlink.LiveSafeUrl;
 import com.github.xzlink.loop.LoopPush;
 import com.github.xzlink.rtmp.DefaultRtmpClient;
 import com.github.xzlink.rtp.RtpReviceThread;
@@ -14,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.text.ParseException;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -427,11 +429,20 @@ public class RTSPClient extends Thread implements IEvent {
     static byte[] sei;
     static boolean pushDataFrame = true;
 
-    public static void main(String[] argv) {
+    public static void main(String[] argv) throws ParseException {
 
 
-        DefaultRtmpClient r = new DefaultRtmpClient("4837.livepush.myqcloud.com",1935,"live");
-        r.playPath = "4837_111?bizid=4837";
+//        DefaultRtmpClient r = new DefaultRtmpClient("4837.livepush.myqcloud.com",1935,"live","4837_42006605d96111e691eae435c87f075e?bizid=4837");
+        long epoch = new java.text.SimpleDateFormat ("dd/MM/yyyy hh:mm:ss").parse("08/02/2017 23:59:00").getTime()
+                /1000;
+
+        DefaultRtmpClient r = new DefaultRtmpClient("4837.livepush.myqcloud.com",1935,"live"
+                ,"4837_3?bizid=4837&"+LiveSafeUrl.getSafeUrl("67dd8195bd3c1838e34be08891490b7a", "4837_3",epoch));
+//        r.playPath = "4837_1?bizid=4837&"+LiveSafeUrl.getSafeUrl("txrtmp", "471de7f6c0811fa3970993b0973ddeee",
+//                System.currentTimeMillis()/1000+10000);
+//        r.playPath = "4837_42006605d96111e691eae435c87f075e?bizid=4837";
+//        r.playPath = "";
+//        DefaultRtmpClient r = new DefaultRtmpClient("rtmp://4837.livepush.myqcloud.com/live/4837_3bd3ab3227?bizid=4837&txSecret=efa2d0e70ed52a3f3109a6ecb2e389e7&txTime=NAN");
         try {
             r.connect();
             r.publish();
@@ -441,7 +452,7 @@ public class RTSPClient extends Thread implements IEvent {
 //            Thread thread63 = new Thread(new RtpReviceThread("192.168.3.63",11935,loopPush,1));
 //            thread63.start();
 
-            Thread thread64 = new Thread(new RtpReviceThread("192.168.2.64",11937,loopPush,2));
+            Thread thread64 = new Thread(new RtpReviceThread("192.168.2.64",11937,loopPush,2,"192.168.3.104"));
             thread64.start();
 
             while(true){
