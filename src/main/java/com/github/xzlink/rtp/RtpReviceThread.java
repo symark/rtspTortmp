@@ -14,15 +14,17 @@ import java.net.SocketException;
  */
 public class RtpReviceThread extends Thread{
 
-    LoopPush loopPush;
-    int port;
-    byte[] pps;
-    byte[] sps;
-    byte[] sei;
-    boolean pushDataFrame = true;
-    int deviceNo;
-    String remoteIp;
-    String localeIp;
+    private LoopPush loopPush;
+    private int port;
+    private byte[] pps;
+    private byte[] sps;
+    private byte[] sei;
+    private boolean pushDataFrame = true;
+    private int deviceNo;
+    private String remoteIp;
+    private String localeIp;
+    private boolean stop = false;
+    private RTSPClient client;
 
     public RtpReviceThread(String remoteIp,int port,LoopPush loopPush,int deviceNo,String localeIp){
         this.port = port;
@@ -32,13 +34,16 @@ public class RtpReviceThread extends Thread{
         this.localeIp = localeIp;
     }
 
+    public void setStop(boolean stop) {
+        this.stop = stop;
+    }
+
     @Override
     public void run() {
         byte[] nalu = new byte[0];
         boolean isStart = true;
-
         try{
-            RTSPClient client = new RTSPClient(
+            client = new RTSPClient(
                     new InetSocketAddress(remoteIp, 554),
                     new InetSocketAddress(localeIp, 0),
                     "rtsp://admin:Yundong2015@"+remoteIp+":554/h264/ch1/main/av_stream/",port);
@@ -53,6 +58,10 @@ public class RtpReviceThread extends Thread{
             datagramSocket=new DatagramSocket(port);
             byte[] buf=new byte[1482];
             while(true){
+                if(stop){
+                    client.shutdown();
+                    break;
+                }
                 //定义接收数据的数据包
                 DatagramPacket datagramPacket=new DatagramPacket(buf, buf.length);
 

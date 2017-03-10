@@ -447,24 +447,24 @@ public class RTSPClient extends Thread implements IEvent {
             r.connect();
             r.publish();
 
-            LoopPush loopPush = new LoopPush(r);
+//            LoopPush loopPush = new LoopPush(r,"/Users/symark/Downloads/ffmpeg3","test");
 
 //            Thread thread63 = new Thread(new RtpReviceThread("192.168.3.63",11935,loopPush,1));
 //            thread63.start();
 
-            Thread thread64 = new Thread(new RtpReviceThread("192.168.2.64",11937,loopPush,2,"192.168.3.104"));
-            thread64.start();
-
-            while(true){
-                try{
-                    Thread.sleep(1000*5);
-//                    loopPush.setProcessDeviceNo(1);
-                    Thread.sleep(1000*5);
-                    loopPush.setProcessDeviceNo(2);
-                }catch(Exception e){
-
-                }
-            }
+//            Thread thread64 = new Thread(new RtpReviceThread("192.168.2.64",11937,loopPush,2,"192.168.3.104"));
+//            thread64.start();
+//
+//            while(true){
+//                try{
+//                    Thread.sleep(1000*5);
+////                    loopPush.setProcessDeviceNo(1);
+//                    Thread.sleep(1000*5);
+//                    loopPush.setProcessDeviceNo(2);
+//                }catch(Exception e){
+//
+//                }
+//            }
         } catch (IOException e) {
             e.printStackTrace();
         }
