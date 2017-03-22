@@ -48,15 +48,15 @@ public class ReadThread extends Thread {
             }
         }
         // Close inputstream
-//        try {
-//            in.close();
-//        } catch (Exception ex) {
-//            L.w("ReadThread: Failed to close inputstream", ex);
-//        }
-//        L.i("ReadThread: exiting");
-//        if (threadController != null) {
-//            threadController.threadHasExited(this);
-//        }
+        try {
+            in.close();
+        } catch (Exception ex) {
+            L.w("ReadThread: Failed to close inputstream", ex);
+        }
+        L.i("ReadThread: exiting");
+        if (threadController != null) {
+            threadController.threadHasExited(this);
+        }
     }
 
     public void shutdown() {

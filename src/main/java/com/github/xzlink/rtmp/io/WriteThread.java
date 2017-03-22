@@ -47,7 +47,7 @@ public class WriteThread extends Thread {
 
 //                        L.d("WriteThread: writing packet: " + rtmpPacket);
                         rtmpPacket.writeTo(out, rtmpSessionInfo.getChunkSize(), chunkStreamInfo);
-                        System.out.println("writethread wrote packet: "+rtmpPacket+", size: "+rtmpPacket.getHeader().getPacketLength());
+//                        System.out.println("writethread wrote packet: "+rtmpPacket+", size: "+rtmpPacket.getHeader().getPacketLength());
                         if (rtmpPacket instanceof Command) {
                             rtmpSessionInfo.addInvokedCommand(((Command) rtmpPacket).getTransactionId(), ((Command) rtmpPacket).getCommandName());
                         }

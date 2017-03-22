@@ -15,24 +15,36 @@ public class LoopPush {
     DefaultRtmpClient r;
 //    FlvWriter flvWriter;
     FlvFileWriter flvFileWriter;
+    private SendInvoke sendInvoke;
 
-    public LoopPush(DefaultRtmpClient r,FlvFileWriter flvFileWriter){
+    public LoopPush(DefaultRtmpClient r,FlvFileWriter flvFileWriter,SendInvoke sendInvoke){
         this.r = r;
 //        flvWriter = new FlvWriter(flvSavePath,flvName);
         this.flvFileWriter = flvFileWriter;
 //        flvFileWriter.init(flv);
+        this.sendInvoke = sendInvoke;
     }
 
     public void pushMessage(byte[] data, boolean isPushDataFrame, int deviceNo){
         if(deviceNo==processDeviceNo) {
             r.pushMessage(data, isPushDataFrame);
 //            if(!isPushDataFrame) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ByteArrayOutputStream out = null;
             try {
+                out = new ByteArrayOutputStream();
                 out.write(data);
                 flvFileWriter.writeDataToFile(out);
+                sendInvoke.send(data);
             } catch (IOException e) {
                 e.printStackTrace();
+            }finally{
+                if(out!=null) {
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
 
 //                flvWriter.writeFrame(data);
