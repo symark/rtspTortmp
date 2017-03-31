@@ -5,5 +5,5 @@ package com.github.xzlink.loop;
  */
 public interface SendInvoke {
 
-    public void send(byte[] data);
+    public void send(byte[] data,long timestamp);
 }

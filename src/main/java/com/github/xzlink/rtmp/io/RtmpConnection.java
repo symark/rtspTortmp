@@ -46,6 +46,7 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
     /** Used to track stream position for pause/resume */
     private int streamPosition = 0;
     public String rtmpPath;
+    private Thread rxHandler = null;
 
     public RtmpConnection(String host, int port, String appName,String rtmpPath) {
         this.host = host;
@@ -87,8 +88,95 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
                 }
             }
         }).start();
+//        rxHandler;
 
         rtmpConnect();
+    }
+
+    private void handleRxPacketLoop() throws IOException {
+        L.d("handleRxPacketLoop(): called");
+        // Handle all queued received RTMP packets
+        while (active) {
+            RtmpPacket rtmpPacket = rxPacketQueue.poll();
+            while (rtmpPacket != null) {
+
+                switch (rtmpPacket.getHeader().getMessageType()) {
+                    case ABORT:
+                        rtmpSessionInfo.getChunkStreamInfo(((Abort) rtmpPacket).getChunkStreamId()).clearStoredChunks();
+                        break;
+                    case SET_CHUNK_SIZE:
+                        SetChunkSize setChunkSize = (SetChunkSize)rtmpPacket;
+                        writeThread.send(setChunkSize);
+                        break;
+                    case USER_CONTROL_MESSAGE: {
+                        UserControl ping = (UserControl) rtmpPacket;
+                        switch (ping.getType()) {
+                            case PING_REQUEST: {
+                                ChunkStreamInfo channelInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.CONTROL_CHANNEL);
+                                L.d("handleRxPacketLoop(): Sending PONG reply..");
+                                UserControl pong = new UserControl(ping, channelInfo);
+                                writeThread.send(pong);
+                                break;
+                            }
+                            case STREAM_EOF:
+                                L.i("handleRxPacketLoop(): Stream EOF reached, closing RTMP writer...");
+                                rtmpStreamWriter.close();
+                                break;
+                            default:
+                                L.w("handleRxPacketLoop(): Not handling unimplemented/unknown packet of type: " +
+                                        ping.getType());
+                                break;
+                        }
+                        break;
+                    }
+                    case WINDOW_ACKNOWLEDGEMENT_SIZE: {
+                        WindowAckSize windowAckSize = (WindowAckSize) rtmpPacket;
+                        if (L.isDebugEnabled()) {
+                            L.d("handleRxPacketLoop(): Setting acknowledgement window size to: " + windowAckSize.getAcknowledgementWindowSize());
+                        }
+                        rtmpSessionInfo.setAcknowledgmentWindowSize(windowAckSize.getAcknowledgementWindowSize());
+                        break;
+                    }
+                    case COMMAND_AMF0:
+                        handleRxInvoke((Command) rtmpPacket);
+                        break;
+                    case DATA_AMF0: {
+                        Data data = (Data) rtmpPacket;
+                        if ("onMetaData".equals(data.getType())) {
+//                            rtmpStreamWriter.write(data);
+
+                        }
+                        break;
+                    }
+                    case AUDIO:
+                    case VIDEO:
+                        streamPosition = rtmpPacket.getHeader().getAbsoluteTimestamp();
+                        rtmpStreamWriter.write((ContentData) rtmpPacket);
+                        break;
+//                    case SET_PEER_BANDWIDTH:
+//                        SetPeerBandwidth setPeerBandwidth = (SetPeerBandwidth) rtmpPacket;
+//                        setPeerBandwidth.setAcknowledgementWindowSize(rtmpSessionInfo.getAcknowledgementWindowSize());
+//                        Data data = new Data("window adknowledgement size");
+//                        data.addData(rtmpSessionInfo.getAcknowledgementWindowSize());
+////                        rtmpStreamWriter.write(data);
+//                        break;
+                    default:
+                        L.w("handleRxPacketLoop(): Not handling unimplemented/unknown packet of type: " + rtmpPacket.getHeader().getMessageType());
+                        break;
+                }
+                // Get next packet (if any)
+                rtmpPacket = rxPacketQueue.poll();
+            }
+            // Wait for next received packet
+            synchronized (lock) {
+                try {
+                    lock.wait();
+                } catch (InterruptedException ex) {
+                    L.w("handleRxPacketLoop: Interrupted", ex);
+                }
+            }
+        }
+        shutdownImpl();
     }
 
     @Override
@@ -260,6 +348,37 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
         writeThread.send(closeStream);
     }
 
+    private void rtmpConnect() throws IOException, IllegalStateException {
+        if (fullyConnected || connecting) {
+            throw new IllegalStateException("Already connecting, or connected to RTMP server");
+        }
+        L.d("rtmpConnect(): Building 'connect' invoke packet");
+        Command invoke = new Command("connect", ++transactionIdCounter, rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL));
+        invoke.getHeader().setMessageStreamId(0);
+
+        AmfObject args = new AmfObject();
+        args.setProperty("app", appName);
+        args.setProperty("type", "nonprivate");
+        args.setProperty("flashVer", "LNX 11,2,202,233"); // Flash player OS: Linux, version: 11.2.202.233
+//        args.setProperty("swfUrl", swfUrl);
+        args.setProperty("tcUrl", tcUrl);
+
+//        args.setProperty("fpad", false);
+//        args.setProperty("capabilities", 239);
+//        args.setProperty("audioCodecs", 3575);
+//        args.setProperty("videoCodecs", 252);
+//        args.setProperty("videoFunction", 1);
+//        args.setProperty("pageUrl", pageUrl);
+
+        invoke.addData(args);
+
+        connecting = true;
+
+        L.d("rtmpConnect(): Writing 'connect' invoke packet");
+        invoke.getHeader().setAbsoluteTimestamp(0);
+        writeThread.send(invoke);
+    }
+
     @Override
     public void pause() throws IllegalStateException {
         if (!fullyConnected) {
@@ -303,37 +422,6 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
         handshake.readS2(in);
     }
 
-    private void rtmpConnect() throws IOException, IllegalStateException {
-        if (fullyConnected || connecting) {
-            throw new IllegalStateException("Already connecting, or connected to RTMP server");
-        }
-        L.d("rtmpConnect(): Building 'connect' invoke packet");
-        Command invoke = new Command("connect", ++transactionIdCounter, rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL));
-        invoke.getHeader().setMessageStreamId(0);
-
-        AmfObject args = new AmfObject();
-        args.setProperty("app", appName);
-        args.setProperty("type", "nonprivate");
-        args.setProperty("flashVer", "LNX 11,2,202,233"); // Flash player OS: Linux, version: 11.2.202.233
-//        args.setProperty("swfUrl", swfUrl);
-        args.setProperty("tcUrl", tcUrl);
-
-//        args.setProperty("fpad", false);
-//        args.setProperty("capabilities", 239);
-//        args.setProperty("audioCodecs", 3575);
-//        args.setProperty("videoCodecs", 252);
-//        args.setProperty("videoFunction", 1);
-//        args.setProperty("pageUrl", pageUrl);
-
-        invoke.addData(args);
-
-        connecting = true;
-
-        L.d("rtmpConnect(): Writing 'connect' invoke packet");
-        invoke.getHeader().setAbsoluteTimestamp(0);
-        writeThread.send(invoke);
-    }
-
     @Override
     public void handleRxPacket(RtmpPacket rtmpPacket) {
         L.d("handleRxPacket(): called");
@@ -341,92 +429,6 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
         synchronized (lock) {
             lock.notify();
         }
-    }
-
-    private void handleRxPacketLoop() throws IOException {
-        L.d("handleRxPacketLoop(): called");
-        // Handle all queued received RTMP packets
-        while (active) {
-            RtmpPacket rtmpPacket = rxPacketQueue.poll();
-            while (rtmpPacket != null) {
-
-                switch (rtmpPacket.getHeader().getMessageType()) {
-                    case ABORT:
-                        rtmpSessionInfo.getChunkStreamInfo(((Abort) rtmpPacket).getChunkStreamId()).clearStoredChunks();
-                        break;
-                    case SET_CHUNK_SIZE:
-                        SetChunkSize setChunkSize = (SetChunkSize)rtmpPacket;
-                        writeThread.send(setChunkSize);
-                        break;
-                    case USER_CONTROL_MESSAGE: {
-                        UserControl ping = (UserControl) rtmpPacket;
-                        switch (ping.getType()) {
-                            case PING_REQUEST: {
-                                ChunkStreamInfo channelInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.CONTROL_CHANNEL);
-                                L.d("handleRxPacketLoop(): Sending PONG reply..");
-                                UserControl pong = new UserControl(ping, channelInfo);
-                                writeThread.send(pong);
-                                break;
-                            }
-                            case STREAM_EOF:
-                                L.i("handleRxPacketLoop(): Stream EOF reached, closing RTMP writer...");
-                                rtmpStreamWriter.close();
-                                break;
-                            default:
-                                L.w("handleRxPacketLoop(): Not handling unimplemented/unknown packet of type: " +
-                                        ping.getType());
-                                break;
-                        }
-                        break;
-                    }
-                    case WINDOW_ACKNOWLEDGEMENT_SIZE: {
-                        WindowAckSize windowAckSize = (WindowAckSize) rtmpPacket;
-                        if (L.isDebugEnabled()) {
-                            L.d("handleRxPacketLoop(): Setting acknowledgement window size to: " + windowAckSize.getAcknowledgementWindowSize());
-                        }
-                        rtmpSessionInfo.setAcknowledgmentWindowSize(windowAckSize.getAcknowledgementWindowSize());
-                        break;
-                    }
-                    case COMMAND_AMF0:
-                        handleRxInvoke((Command) rtmpPacket);
-                        break;
-                    case DATA_AMF0: {
-                        Data data = (Data) rtmpPacket;
-                        if ("onMetaData".equals(data.getType())) {
-//                            rtmpStreamWriter.write(data);
-
-                        }
-                        break;
-                    }
-                    case AUDIO:
-                    case VIDEO:
-                        streamPosition = rtmpPacket.getHeader().getAbsoluteTimestamp();
-                        rtmpStreamWriter.write((ContentData) rtmpPacket);
-                        break;
-//                    case SET_PEER_BANDWIDTH:
-//                        SetPeerBandwidth setPeerBandwidth = (SetPeerBandwidth) rtmpPacket;
-//                        setPeerBandwidth.setAcknowledgementWindowSize(rtmpSessionInfo.getAcknowledgementWindowSize());
-//                        Data data = new Data("window adknowledgement size");
-//                        data.addData(rtmpSessionInfo.getAcknowledgementWindowSize());
-////                        rtmpStreamWriter.write(data);
-//                        break;
-                    default:
-                        L.w("handleRxPacketLoop(): Not handling unimplemented/unknown packet of type: " + rtmpPacket.getHeader().getMessageType());
-                        break;
-                }
-                // Get next packet (if any)
-                rtmpPacket = rxPacketQueue.poll();
-            }
-            // Wait for next received packet
-            synchronized (lock) {
-                try {
-                    lock.wait();
-                } catch (InterruptedException ex) {
-                    L.w("handleRxPacketLoop: Interrupted", ex);
-                }
-            }
-        }
-        shutdownImpl();
     }
 
     private void handleRxInvoke(Command invoke) throws IOException {
@@ -544,6 +546,7 @@ public class RtmpConnection implements RtmpClient, PacketRxHandler, ThreadContro
         if (rtmpStreamWriter != null) {
             rtmpStreamWriter.close();
         }
+//        rxHandler.interrupt();
     }
 
     @Override

@@ -58,16 +58,16 @@ public class WriteThread extends Thread {
                 }
                 rtmpPacket = writeQueue.poll();
             }
-            try {
-                out.flush();
-            } catch (IOException ex) {
-                L.e("WriteThread: Caught IOException while flushing stream, shutting down", ex);
-                active = false;
-                continue;
-            }
             // Wait for next command
             synchronized (lock) {
                 try {
+                    try {
+                        out.flush();
+                    } catch (IOException ex) {
+                        L.e("WriteThread: Caught IOException while flushing stream, shutting down", ex);
+                        active = false;
+                        continue;
+                    }
                     lock.wait();
                 } catch (InterruptedException ex) {
                     L.w("WriteThread: Interrupted", ex);

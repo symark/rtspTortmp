@@ -5,10 +5,12 @@ package com.github.xzlink.rtsp;
  */
 
 import com.github.xzlink.LiveSafeUrl;
+import com.github.xzlink.loop.FlvFileWriter;
 import com.github.xzlink.loop.LoopPush;
 import com.github.xzlink.rtmp.DefaultRtmpClient;
 import com.github.xzlink.rtp.RtpReviceThread;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -436,22 +438,24 @@ public class RTSPClient extends Thread implements IEvent {
         long epoch = new java.text.SimpleDateFormat ("dd/MM/yyyy hh:mm:ss").parse("08/02/2017 23:59:00").getTime()
                 /1000;
 
-        DefaultRtmpClient r = new DefaultRtmpClient("4837.livepush.myqcloud.com",1935,"live"
-                ,"4837_3?bizid=4837&"+LiveSafeUrl.getSafeUrl("67dd8195bd3c1838e34be08891490b7a", "4837_3",epoch));
+//        DefaultRtmpClient r = new DefaultRtmpClient("4837.livepush.myqcloud.com",1935,"live"
+//                ,"4837_3?bizid=4837&"+LiveSafeUrl.getSafeUrl("67dd8195bd3c1838e34be08891490b7a", "4837_3",epoch));
 //        r.playPath = "4837_1?bizid=4837&"+LiveSafeUrl.getSafeUrl("txrtmp", "471de7f6c0811fa3970993b0973ddeee",
 //                System.currentTimeMillis()/1000+10000);
 //        r.playPath = "4837_42006605d96111e691eae435c87f075e?bizid=4837";
 //        r.playPath = "";
 //        DefaultRtmpClient r = new DefaultRtmpClient("rtmp://4837.livepush.myqcloud.com/live/4837_3bd3ab3227?bizid=4837&txSecret=efa2d0e70ed52a3f3109a6ecb2e389e7&txTime=NAN");
-        try {
-            r.connect();
-            r.publish();
-
-//            LoopPush loopPush = new LoopPush(r,"/Users/symark/Downloads/ffmpeg3","test");
-
-//            Thread thread63 = new Thread(new RtpReviceThread("192.168.3.63",11935,loopPush,1));
-//            thread63.start();
-
+//        try {
+//            r.connect();
+//            r.publish();
+            File file = new File("/Users/symark/Downloads/ffmpeg3","test.flv");
+            FlvFileWriter flvFileWriter = new FlvFileWriter();
+            flvFileWriter.init(file);
+            LoopPush loopPush = new LoopPush(r,flvFileWriter,null);
+            loopPush.setProcessDeviceNo(1);
+            Thread thread63 = new Thread(new RtpReviceThread("186.188.2.63",11935,loopPush,1,"186.188.2.6"));
+            thread63.start();
+            ////                    loopPush.setProcessDeviceNo(1);
 //            Thread thread64 = new Thread(new RtpReviceThread("192.168.2.64",11937,loopPush,2,"192.168.3.104"));
 //            thread64.start();
 //
@@ -465,9 +469,9 @@ public class RTSPClient extends Thread implements IEvent {
 //
 //                }
 //            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     public static void printHexString( byte[] b) {

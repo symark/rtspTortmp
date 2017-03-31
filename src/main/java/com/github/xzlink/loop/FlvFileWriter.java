@@ -26,23 +26,23 @@ public class FlvFileWriter {
         setupFlvFile(flv);
     }
 
-    public void writeDataToFile (ByteArrayOutputStream videoData) {
+    public void writeDataToFile (long timestamp, ByteArrayOutputStream videoData) {
 
         int size = videoData.size();
         byte[] blockData = videoData.toByteArray();
 
         try {
             writePreviousTagSize();
-            writeFlvTag(blockData, size);
+            writeFlvTag(timestamp,blockData, size);
         } catch(Exception e) {
             System.out.println("exception: "+e.getMessage());
         }
     }
 
-    private void writeFlvTag(byte[] videoData, int size) throws IOException {
+    private void writeFlvTag(long timestamp,byte[] videoData, int size) throws IOException {
         writeTagType();
         writeDataSize(size);
-        writeTimestamp();
+        writeTimestamp(timestamp);
         writeStreamId();
         writeVideoData(videoData);
     }
@@ -118,15 +118,15 @@ public class FlvFileWriter {
         previousTagSize = FLV_TAG_HEADER_SIZE + size;
     }
 
-    private void writeTimestamp() throws IOException {
-        long now = System.currentTimeMillis();
-
+    private void writeTimestamp(long timestamp) throws IOException {
+//        long now = System.currentTimeMillis();
+//        timestamp = timestamp/90;
         if (firstTag) {
-            startTimestamp = now;
+            startTimestamp = timestamp;
             firstTag = false;
         }
 
-        long elapsed = now - startTimestamp;
+        long elapsed = timestamp - startTimestamp;
 
         int fb = (int)(elapsed & 0xff0000) >> 16;
         int sb = (int)(elapsed & 0xff00) >> 8;

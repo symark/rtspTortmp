@@ -1,6 +1,7 @@
 package com.github.xzlink.loop;
 
 import com.github.xzlink.rtmp.DefaultRtmpClient;
+import com.github.xzlink.rtp.RtpHead;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -25,16 +26,20 @@ public class LoopPush {
         this.sendInvoke = sendInvoke;
     }
 
-    public void pushMessage(byte[] data, boolean isPushDataFrame, int deviceNo){
+    public void pushMessage(RtpHead rtpHead,byte[] data, boolean isPushDataFrame, int deviceNo){
         if(deviceNo==processDeviceNo) {
-            r.pushMessage(data, isPushDataFrame);
+            if(r!=null) {
+                r.pushMessage(data, isPushDataFrame);
+            }
 //            if(!isPushDataFrame) {
             ByteArrayOutputStream out = null;
             try {
                 out = new ByteArrayOutputStream();
                 out.write(data);
-                flvFileWriter.writeDataToFile(out);
-                sendInvoke.send(data);
+                flvFileWriter.writeDataToFile(rtpHead.getTimestamp(), out);
+                if(sendInvoke!=null) {
+                    sendInvoke.send(data,rtpHead.getTimestamp());
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }finally{

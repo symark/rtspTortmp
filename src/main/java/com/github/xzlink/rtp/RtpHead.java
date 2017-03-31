@@ -35,7 +35,8 @@ public class RtpHead {
             m = (data[1]>>7);
             pt = data[1]&0x7f;
             sequenceNumber = data[2]<<8+data[3];
-            timestamp = (data[4]<<24)+(data[5]<<16)+(data[6]<<8)+(data[7]);
+
+            timestamp = byte2Int(new byte[]{data[4],data[5],data[6],data[7]});
             ssrc = (data[8]<<24)+(data[9]<<16)+(data[10]<<8)+data[11];
 //            csrc = (data[12]<<24)+(data[13]<<16)+(data[14]<<8)+data[15];
 
@@ -50,6 +51,13 @@ public class RtpHead {
         }
     }
 
+    public static int byte2Int(byte[] b) {
+        int intValue = 0;
+        for (int i = 0; i < b.length; i++) {
+            intValue += (b[i] & 0xFF) << (8 * (3 - i));
+        }
+        return intValue;
+    }
 
 
     public static void main(String args[]){
@@ -78,8 +86,13 @@ public class RtpHead {
     }
 
     public long getTimestamp() {
-        return timestamp&0x0FFFFFFFFl;
+        return (long)(timestamp/90);
+//        return &0x0FFFFFFFFl;
     }
+
+//    public int getTimestamp() {
+//        return timestamp;
+//    }
 
     public int getPayloadType() {
         return pt;

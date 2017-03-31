@@ -69,6 +69,7 @@ public class RtpReviceThread extends Thread{
                 byte[] data = new byte[datagramPacket.getLength()];
                 System.arraycopy(datagramPacket.getData(),0,data,0,datagramPacket.getLength());
                 RtpHead rtpHead = new RtpHead(data);
+//                System.out.println("--"+rtpHead.getTimestamp());
                 RtpBody rtpBody = new RtpBody(rtpHead.getPayload());
 //                    printHexString(rtpBody.getPayload());
                 if(rtpBody.isSPS()){
@@ -78,7 +79,8 @@ public class RtpReviceThread extends Thread{
                 if(rtpBody.isPPS()){
                     pps = rtpBody.getPayload();
                     byte[] messages = firstFrame(sps,pps);
-                    loopPush.pushMessage(messages,pushDataFrame,deviceNo);
+//                    System.out.println("--"+rtpHead.getTimestamp());
+                    loopPush.pushMessage(rtpHead,messages,pushDataFrame,deviceNo);
                     pushDataFrame = false;
                     continue;
                 }
@@ -106,10 +108,12 @@ public class RtpReviceThread extends Thread{
                         isStart = false;
                         if(rtpBody.isKeyFrame()){
                             byte[] messages = keyFrame(tmpData);
-                            loopPush.pushMessage(messages,false,deviceNo);
+//                            System.out.println("--"+rtpHead.getTimestamp());
+                            loopPush.pushMessage(rtpHead,messages,false,deviceNo);
                         }else{
                             byte[] messages = innerFrame(tmpData);
-                            loopPush.pushMessage(messages,false,deviceNo);
+//                            System.out.println("--"+rtpHead.getTimestamp());
+                            loopPush.pushMessage(rtpHead,messages,false,deviceNo);
                         }
                     }
                 }
